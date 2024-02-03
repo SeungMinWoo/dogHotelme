@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.green.hoteldog.board.BoardMapper">
+    <insert id="postBoard" keyProperty="boardPk" useGeneratedKeys="true">
+        INSERT INTO t_board
+        SET user_pk = #{userPk}
+        ,board_category_pk = #{boardCategoryPk}
+        ,title = #{title}
+        ,contents = #{contents}
+    </insert>
+    <insert id="postBoardPics">
+        INSERT INTO t_board_pics
+        (board_pk,board_pic)
+        VALUES
+        <foreach collection="pics" item="pic" separator=",">
+            (#{boardPk},#{pic})
+        </foreach>
+    </insert>
+    <delete id="delBoardPics">
+        DELETE FROM t_board_pics
+        WHERE board_pk = #{boardPk}
+    </delete>
+    <update id="putBoard">
+        UPDATE t_board
+        SET board_category_pk = #{boardCategoryPk}
+        ,title = #{title}
+        ,contents = #{contents}
+        WHERE board_pk = #{boardPk} AND user_pk = #{userPk}
+    </update>
+    <insert id="postFav">
+        INSERT INTO t_board_fav
+        SET user_pk = #{userPk}
+        ,board_pk = #{boardPk}
+    </insert>
+    <delete id="delFav">
+        DELETE FROM t_board_fav
+        WHERE user_pk = #{userPk} AND board_pk = #{boardPk}
+    </delete>
+    <delete id="delBoard">
+        DELETE FROM t_board
+        WHERE board_pk IN
+        <foreach collection="boardPkList" item="boardPk" open="(" close=")" separator=",">
+            #{boardPk}
+        </foreach>
+        AND user_pk = #{userPk}
+    </delete>
+    <insert id="postComment">
+        INSERT INTO t_board_comment
+        SET user_pk = #{userPk}
+        ,board_pk = #{boardPk}
+        ,comment = #{comment}
+    </insert>
+    <update id="updComment">
+        UPDATE t_board_comment
+        SET comment = #{comment}
+        WHERE comment_pk = #{commentPk} AND user_pk = #{userPk}
+    </update>
+    <delete id="delComment">
+        DELETE FROM t_board_comment
+        WHERE comment_pk IN
+        <foreach collection="commentPkList" item="commentPk" open="(" close=")" separator=",">
+            #{commentPk}
+        </foreach>
+        AND user_pk = #{userPk}
+    </delete>
+    <!--게시글 리스트-->
+    <select id="getBoardList">
+        SELECT A.board_pk AS boardPk
+        ,C.user_pk AS userPk
+        ,C.nickname AS nickname
+        ,F.board_category_pk AS boardCategoryPk
+        ,F.category_nm AS categoryNm
+        ,A.title
+        ,A.created_at AS createdAt
+        ,A.board_view_count AS boardViewCount
+        FROM t_board A
+        JOIN t_user C
+        ON A.user_pk = C.user_pk
+        JOIN t_board_category F
+        ON A.board_category_pk = F.board_category_pk
+        <where>
+            <if test="search != null and searchType == 0">
+                AND A.title like '%${search}%'
+            </if>
+            <if test="search != null and searchType == 1">
+                AND A.contents like '%${search}%'
+            </if>
+            <if test="search != null and searchType == 2">
+                AND C.nickname like '%${search}%'
+            </if>
+            <if test="boardCategoryPk != null and boardCategoryPk != 0">
+                AND A.board_category_pk = #{boardCategoryPk}
+            </if>
+        </where>
+        ORDER BY A.board_pk desc
+        LIMIT #{startIdx} , #{rowCount}
+    </select>
+    <!--게시글 상세 정보-->
+    <select id="getBoardInfo">
+        SELECT A.board_pk AS boardPk
+        ,A.title
+        ,A.contents
+        ,F.board_category_pk AS boardCategoryPk
+        ,F.category_nm AS categoryNm
+        ,D.user_pk AS userPk
+        ,D.nickname AS nickname
+        ,A.created_at AS createdAt
+        ,A.board_view_count AS boardViewCount
+        FROM t_board A
+        JOIN t_user D
+        ON A.user_pk = D.user_pk
+        JOIN t_board_category F
+        ON A.board_category_pk = F.board_category_pk
+        WHERE A.board_pk = #{boardPk}
+    </select>
+    <!--게시글에 등록된 사진 리스트-->
+    <select id="selBoardPics">
+        SELECT board_pic
+        FROM t_board_pics
+        WHERE board_pk = #{boardPk}
+    </select>
+    <!--게시글에 작성된 댓글 리스트-->
+    <select id="selBoardComment">
+        SELECT A.comment_pk AS commentPk
+        ,A.user_pk AS userPk
+        ,B.nickname AS userNickname
+        ,A.comment
+        ,A.created_at AS createdAt
+        FROM t_board_comment A
+        JOIN t_user B
+        ON A.user_pk = B.user_pk
+        WHERE A.board_pk = #{boardPk}
+        ORDER BY A.comment_pk desc
+        LIMIT #{startIdx}, #{rowCount}
+    </select>
+    <!--조회수 증가-->
+    <update id="boardViewCount">
+        UPDATE t_board
+        SET board_view_count = board_view_count + 1
+        WHERE board_pk = #{boardPk};
+    </update>
+    <!--내가 작성한 게시글 리스트-->
+    <select id="myPostingBoardList">
+        SELECT A.board_pk AS boardPk
+        ,C.user_pk AS userPk
+        ,C.nickname AS nickname
+        ,A.title
+        ,F.board_category_pk AS boardCategoryPk
+        ,F.category_nm AS categoryNm
+        ,A.created_at AS createdAt
+        ,A.board_view_count AS boardViewCount
+        FROM t_board A
+        JOIN t_user C
+        ON A.user_pk = C.user_pk
+        JOIN t_board_category F
+        ON A.board_category_pk = F.board_category_pk
+        WHERE A.user_pk = #{userPk}
+        ORDER BY A.board_pk desc
+        LIMIT #{startIdx} , #{rowCount}
+    </select>
+    <!--내가 작성한 댓글 리스트-->
+    <select id="myPostingCommentList">
+        SELECT B.board_pk AS boardPk
+        ,B.title
+        ,B.board_category_pk AS boardCategoryPk
+        ,D.category_nm AS categoryNm
+        ,A.comment
+        ,A.user_pk AS userPk
+        ,C.nickname
+        ,A.created_at AS createdAt
+        ,B.board_view_count AS boardViewCount
+        FROM t_board_comment A
+        JOIN t_board B
+        ON A.board_pk = B.board_pk
+        JOIN t_user C
+        ON A.user_pk = C.user_pk
+        JOIN t_board_category D
+        ON B.board_category_pk = D.board_category_pk
+        WHERE A.user_pk = #{userPk}
+        ORDER BY B.board_pk desc
+        LIMIT #{startIdx} , #{rowCount}
+    </select>
+    <!--총 게시글 수 카운트-->
+    <select id="selBoardCount">
+        SELECT COUNT(*)
+        FROM t_board
+        <where>
+            <if test="search != null and searchType == 0">
+                AND title like '%${search}%'
+            </if>
+            <if test="search != null and searchType == 1">
+                AND contents like '%${search}%'
+            </if>
+            <if test="search != null and searchType == 2">
+                AND nickname like '%${search}%'
+            </if>
+            <if test="boardCategoryPk != null and boardCategoryPk != 0">
+                AND board_category_pk = #{boardCategoryPk}
+            </if>
+        </where>
+    </select>
+    <!--게시글에 등록된 총 댓글 수-->
+    <select id="selBoardCommentCount">
+        SELECT COUNT(*)
+        FROM t_board_comment
+        WHERE board_pk = #{boardPk}
+    </select>
+    <!--유저가 작성한 총 게시글 수-->
+    <select id="selUserBoardCount">
+        SELECT COUNT(*)
+        FROM t_board
+        WHERE user_pk = #{userPk}
+    </select>
+    <!--유저가 작성한 총 댓글 수-->
+    <select id="selUserCommentCount">
+        SELECT COUNT(*)
+        FROM t_board_comment
+        WHERE user_pk = #{userPk}
+    </select>
+</mapper>

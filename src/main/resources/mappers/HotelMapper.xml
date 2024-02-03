@@ -1,0 +1,626 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.green.hoteldog.hotel.HotelMapper">
+    <!--호텔 광고 리스트-->
+    <select id="selHotelAdvertiseList">
+        SELECT A.hotel_pk AS hotelPk, A.hotel_nm AS hotelNm, B.pic AS hotelPic
+        , hotelRoomCost, avgStar, A.discount_per AS discountPer, reviewCount
+        , F.address_name AS addressName
+        <if test="userPk > 0">
+            , IF(H.hotel_pk IS NULL, 0, 1) AS bookMark
+        </if>
+        FROM t_hotel A
+        LEFT JOIN t_hotel_pic B
+        ON A.hotel_pk = B.hotel_pk
+        LEFT JOIN t_reservation C
+        ON A.hotel_pk = C.hotel_pk
+        JOIN (
+        SELECT A.res_pk, round(AVG(A.score),1) AS avgStar, COUNT(A.review_pk) AS reviewCount
+        FROM t_review A
+        JOIN t_reservation B
+        ON A.res_pk = B.res_pk
+        GROUP BY B.hotel_pk
+        ) D
+        ON C.res_pk = D.res_pk
+        LEFT JOIN (
+        SELECT A.hotel_pk, MIN(A.hotel_room_cost) AS hotelRoomCost
+        FROM t_hotel_room_info A
+        JOIN t_hotel B
+        ON A.hotel_pk = B.hotel_pk
+        WHERE A.hotel_room_cost
+        GROUP BY A.hotel_pk
+        ) E
+        ON A.hotel_pk = E.hotel_pk
+        LEFT JOIN t_hotel_where F
+        ON A.hotel_pk = F.hotel_pk
+        <if test="userPk > 0">
+            LEFT JOIN t_user G
+            ON A.user_pk = G.user_pk
+            LEFT JOIN t_hotel_favorites H
+            ON A.hotel_pk = H.hotel_pk AND H.user_pk = #{userPk}
+        </if>
+        WHERE A.advertise = 1
+        GROUP BY A.hotel_pk
+        ORDER BY RAND()
+        LIMIT 3
+    </select>
+
+    <!--비회원 첫 화면 호텔 리스트-->
+    <select id="selHotelListToNonMember">
+        SELECT A.hotel_pk AS hotelPk, A.hotel_nm AS hotelNm, B.pic AS hotelPic
+        , hotelRoomCost, avgStar, A.discount_per AS discountPer, reviewCount
+        , F.address_name AS addressName
+        FROM t_hotel A
+        LEFT JOIN t_hotel_pic B
+        ON A.hotel_pk = B.hotel_pk
+        LEFT JOIN t_reservation C
+        ON A.hotel_pk = C.hotel_pk
+        JOIN (
+        SELECT A.res_pk, round(AVG(A.score),1) AS avgStar, COUNT(A.review_pk) AS reviewCount
+        FROM t_review A
+        JOIN t_reservation B
+        ON A.res_pk = B.res_pk
+        GROUP BY B.hotel_pk
+        ) D
+        ON C.res_pk = D.res_pk
+        LEFT JOIN (
+        SELECT A.hotel_pk, MIN(A.hotel_room_cost) AS hotelRoomCost
+        FROM t_hotel_room_info A
+        JOIN t_hotel B
+        ON A.hotel_pk = B.hotel_pk
+        WHERE A.hotel_room_cost
+        GROUP BY A.hotel_pk
+        ) E
+        ON A.hotel_pk = E.hotel_pk
+        LEFT JOIN t_hotel_where F
+        ON A.hotel_pk = F.hotel_pk
+        GROUP BY A.hotel_pk
+        <choose>
+            <when test="filterType == 0">
+                ORDER BY A.created_at DESC
+            </when>
+            <when test="filterType == 1">
+                ORDER BY avgStar DESC
+            </when>
+            <otherwise>
+                ORDER BY reviewCount DESC
+            </otherwise>
+        </choose>
+        LIMIT #{startIdx}, #{rowCount}
+    </select>
+
+    <!--회원 정보 셀렉트-->
+    <select id="selUserInfoToUserPk">
+        SELECT B.region_1depth_name AS address , C.size_pk AS dogSizePks
+        FROM t_user A
+        LEFT JOIN t_user_where B
+        ON A.user_pk = B.user_pk
+        LEFT JOIN t_user_dog C
+        ON A.user_pk = C.user_pk
+        WHERE A.user_pk = #{userPk}
+        GROUP BY C.size_pk
+    </select>
+
+    <!--회원 첫 화면 호텔 리스트 1-->
+    <select id="selHotelListAsUserAddress">
+        SELECT A.hotel_pk AS hotelPk, A.hotel_nm AS hotelNm, B.pic AS hotelPic
+        , hotelRoomCost, avgStar, A.discount_per AS discountPer, reviewCount
+        , G.address_name AS addressName, IF(I.hotel_pk IS NULL, 0, 1) AS bookMark
+        FROM t_hotel A
+        LEFT JOIN t_hotel_pic B
+        ON A.hotel_pk = B.hotel_pk
+        LEFT JOIN t_reservation C
+        ON A.hotel_pk = C.hotel_pk
+        JOIN (
+        SELECT A.res_pk, round(AVG(A.score),1) AS avgStar, COUNT(A.review_pk) AS reviewCount
+        FROM t_review A
+        join t_reservation B
+        ON A.res_pk = B.res_pk
+        GROUP BY B.hotel_pk
+        ) D
+        ON C.res_pk = D.res_pk
+        LEFT JOIN (
+        SELECT A.hotel_pk, MIN(A.hotel_room_cost) AS hotelRoomCost
+        FROM t_hotel_room_info A
+        JOIN t_hotel B
+        ON A.hotel_pk = B.hotel_pk
+        WHERE A.hotel_room_cost
+        GROUP BY A.hotel_pk
+        ) E
+        ON A.hotel_pk = E.hotel_pk
+        LEFT JOIN t_hotel_where G
+        ON A.hotel_pk = G.hotel_pk
+        LEFT JOIN t_user H
+        ON A.user_pk = H.user_pk
+        LEFT JOIN t_hotel_favorites I
+        ON A.hotel_pk = I.hotel_pk AND I.user_pk = #{userPk}
+        WHERE G.region_1depth_name = #{address}
+        GROUP BY A.hotel_pk
+        <choose>
+            <when test="filterType == 0">
+                ORDER BY A.created_at DESC
+            </when>
+            <when test="filterType == 1">
+                ORDER BY avgStar DESC
+            </when>
+            <otherwise>
+                ORDER BY reviewCount DESC
+            </otherwise>
+        </choose>
+        LIMIT #{startIdx}, #{rowCount}
+    </select>
+
+    <!--회원 첫 화면 호텔 리스트 2-->
+    <select id="selHotelListAsUserAddressAndDogInformation">
+        SELECT A.hotel_pk AS hotelPk, A.hotel_nm AS hotelNm, B.pic AS hotelPic
+        , hotelRoomCost, avgStar, A.discount_per AS discountPer, reviewCount
+        , G.address_name AS addressName, IF(I.hotel_pk IS NULL, 0, 1) AS bookMark
+        FROM t_hotel A
+        LEFT JOIN t_hotel_pic B
+        ON A.hotel_pk = B.hotel_pk
+        LEFT JOIN t_reservation C
+        ON A.hotel_pk = C.hotel_pk
+        JOIN (
+        SELECT A.res_pk, round(AVG(A.score),1) AS avgStar, COUNT(A.review_pk) AS reviewCount
+        FROM t_review A
+        join t_reservation B
+        ON A.res_pk = B.res_pk
+        GROUP BY B.hotel_pk
+        ) D
+        ON C.res_pk = D.res_pk
+        LEFT JOIN (
+        SELECT A.hotel_pk, MIN(A.hotel_room_cost) AS hotelRoomCost
+        FROM t_hotel_room_info A
+        JOIN t_hotel B
+        ON A.hotel_pk = B.hotel_pk
+        WHERE A.hotel_room_cost
+        GROUP BY A.hotel_pk
+        ) E
+        ON A.hotel_pk = E.hotel_pk
+        JOIN(
+        SELECT A.hotel_pk
+        FROM t_hotel A
+        JOIN t_hotel_room_info B
+        ON A.hotel_pk = B.hotel_pk
+        WHERE B.size_pk IN
+        <foreach collection="dogSizePks" item="item" separator="," open="(" close=")">
+            #{item}
+        </foreach>
+        GROUP BY A.hotel_pk
+        HAVING COUNT(A.hotel_pk) <![CDATA[ >= ]]> #{dogPkSize}
+        ) F
+        ON A.hotel_pk = F.hotel_pk
+        LEFT JOIN t_hotel_where G
+        ON A.hotel_pk = G.hotel_pk
+        <if test="userPk > 0">
+            LEFT JOIN t_user H
+            ON A.user_pk = H.user_pk
+            LEFT JOIN t_hotel_favorites I
+            ON A.hotel_pk = I.hotel_pk AND I.user_pk = #{userPk}
+        </if>
+        WHERE G.region_1depth_name = #{address}
+        GROUP BY A.hotel_pk
+        <choose>
+            <when test="filterType == 0">
+                ORDER BY A.created_at DESC
+            </when>
+            <when test="filterType == 1">
+                ORDER BY avgStar DESC
+            </when>
+            <otherwise>
+                ORDER BY reviewCount DESC
+            </otherwise>
+        </choose>
+        LIMIT #{startIdx}, #{rowCount}
+    </select>
+
+    <!--검색 시 호텔 리스트-->
+    <select id="selHotelListToSearch">
+        SELECT A.hotel_pk AS hotelPk, A.hotel_nm AS hotelNm, B.pic AS hotelPic
+        , hotelRoomCost, avgStar, A.discount_per AS discountPer, F.address_name AS addressName
+        , IF(I.hotel_pk IS NULL, 0, 1) AS bookMark, reviewCount
+        FROM t_hotel A
+        LEFT JOIN t_hotel_pic B
+        ON A.hotel_pk = B.hotel_pk
+        LEFT JOIN t_reservation C
+        ON A.hotel_pk = C.hotel_pk
+        JOIN (
+        SELECT A.res_pk, round(AVG(A.score),1) AS avgStar, COUNT(A.review_pk) AS reviewCount
+        FROM t_review A
+        join t_reservation B
+        ON A.res_pk = B.res_pk
+        GROUP BY B.hotel_pk
+        ) D
+        ON C.res_pk = D.res_pk
+        LEFT JOIN (
+        SELECT A.hotel_pk, MIN(A.hotel_room_cost) AS hotelRoomCost
+        FROM t_hotel_room_info A
+        JOIN t_hotel B
+        ON A.hotel_pk = B.hotel_pk
+        WHERE A.hotel_room_cost
+        GROUP BY A.hotel_pk
+        ) E
+        ON A.hotel_pk = E.hotel_pk
+        LEFT JOIN t_hotel_where F
+        ON A.hotel_pk = F.hotel_pk
+        LEFT JOIN t_user H
+        ON A.user_pk = H.user_pk
+        LEFT JOIN t_hotel_favorites I
+        ON A.hotel_pk = I.hotel_pk AND I.user_pk = #{userPk}
+        WHERE A.hotel_nm
+        REGEXP replace(<foreach collection="tokensToStrList" item="item" separator="|" open="'" close="'">${item}</foreach>, ' ', '')
+        GROUP BY A.hotel_pk
+        <choose>
+            <when test="filterType == 0">
+                ORDER BY A.created_at DESC
+            </when>
+            <when test="filterType == 1">
+                ORDER BY avgStar DESC
+            </when>
+            <otherwise>
+                ORDER BY reviewCount DESC
+            </otherwise>
+        </choose>
+        LIMIT #{startIdx}, #{rowCount}
+    </select>
+
+    <select id="selHotelListToAccurateSearch">
+        SELECT A.hotel_pk AS hotelPk, A.hotel_nm AS hotelNm, B.pic AS hotelPic
+        , hotelRoomCost, avgStar, A.discount_per AS discountPer, F.address_name AS addressName
+        , IF(I.hotel_pk IS NULL, 0, 1) AS bookMark, reviewCount
+        FROM t_hotel A
+        LEFT JOIN t_hotel_pic B
+        ON A.hotel_pk = B.hotel_pk
+        LEFT JOIN t_reservation C
+        ON A.hotel_pk = C.hotel_pk
+        JOIN (
+        SELECT A.res_pk, round(AVG(A.score),1) AS avgStar, COUNT(A.review_pk) AS reviewCount
+        FROM t_review A
+        join t_reservation B
+        ON A.res_pk = B.res_pk
+        GROUP BY B.hotel_pk
+        ) D
+        ON C.res_pk = D.res_pk
+        LEFT JOIN (
+        SELECT A.hotel_pk, MIN(A.hotel_room_cost) AS hotelRoomCost
+        FROM t_hotel_room_info A
+        JOIN t_hotel B
+        ON A.hotel_pk = B.hotel_pk
+        WHERE A.hotel_room_cost
+        GROUP BY A.hotel_pk
+        ) E
+        ON A.hotel_pk = E.hotel_pk
+        LEFT JOIN t_hotel_where F
+        ON A.hotel_pk = F.hotel_pk
+        <if test="userPk > 0">
+            LEFT JOIN t_user H
+            ON A.user_pk = H.user_pk
+            LEFT JOIN t_hotel_favorites I
+            ON A.hotel_pk = I.hotel_pk AND I.user_pk = #{userPk}
+        </if>
+        WHERE A.hotel_nm = #{search}
+        GROUP BY A.hotel_pk
+        <choose>
+            <when test="filterType == 0">
+                ORDER BY A.created_at DESC
+            </when>
+            <when test="filterType == 1">
+                ORDER BY avgStar DESC
+            </when>
+            <otherwise>
+                ORDER BY reviewCount DESC
+            </otherwise>
+        </choose>
+        LIMIT #{startIdx}, #{rowCount}
+    </select>
+
+    <!--필터링 시 호텔 리스트-->
+    <select id="selHotelListToFilter">
+        SELECT A.hotel_pk AS hotelPk, A.hotel_nm AS hotelNm, B.pic AS hotelPic, hotelRoomCost
+        , avgStar, A.discount_per AS discountPer, G.address_name AS addressName, reviewCount
+        <if test="userPk > 0">
+            , IF(K.hotel_pk IS NULL, 0, 1) AS bookMark
+        </if>
+        FROM t_hotel A
+        LEFT JOIN t_hotel_pic B
+        ON A.hotel_pk = B.hotel_pk
+        LEFT JOIN t_reservation C
+        ON A.hotel_pk = C.hotel_pk
+        JOIN (
+        SELECT A.res_pk, round(AVG(A.score),1) AS avgStar, COUNT(A.review_pk) AS reviewCount
+        FROM t_review A
+        join t_reservation B
+        ON A.res_pk = B.res_pk
+        GROUP BY B.hotel_pk
+        ) D
+        ON C.res_pk = D.res_pk
+        LEFT JOIN (
+        SELECT A.hotel_pk, MIN(A.hotel_room_cost) AS hotelRoomCost
+        FROM t_hotel_room_info A
+        JOIN t_hotel B
+        ON A.hotel_pk = B.hotel_pk
+        WHERE A.hotel_room_cost
+        GROUP BY A.hotel_pk
+        ) E
+        ON A.hotel_pk = E.hotel_pk
+        LEFT JOIN t_hotel_where G
+        ON A.hotel_pk = G.hotel_pk
+        LEFT JOIN t_hotel_option H
+        ON A.hotel_pk = H.hotel_pk
+        <if test="hotelOptionPk != null">
+            JOIN(
+            SELECT A.hotel_pk, COUNT(A.hotel_pk)
+            FROM t_hotel A
+            JOIN t_hotel_option B
+            ON A.hotel_pk = B.hotel_pk
+            WHERE B.option_pk IN
+            <foreach collection="hotelOptionPk" item="item" separator="," open="(" close=")">
+                #{item}
+            </foreach>
+            GROUP BY A.hotel_pk
+            HAVING COUNT(A.hotel_pk) = #{optionPkSize}
+            ) I
+            ON A.hotel_pk = I.hotel_pk
+        </if>
+        <if test="userPk > 0">
+            LEFT JOIN t_user J
+            ON A.user_pk = J.user_pk
+            LEFT JOIN t_hotel_favorites K
+            ON A.hotel_pk = K.hotel_pk AND K.user_pk = #{userPk}
+        </if>
+        <where>
+            <if test="address != null">
+                G.region_1depth_name = #{address}
+            </if>
+            <if test="dogInfo != null">
+                <if test="address != null">
+                    AND
+                </if>
+                A.hotel_pk in
+                <foreach collection="filteredPk" item="item" separator="," open="(" close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+        GROUP BY A.hotel_pk
+        <choose>
+            <when test="filterType == 0">
+                ORDER BY A.created_at DESC
+            </when>
+            <when test="filterType == 1">
+                ORDER BY avgStar DESC
+            </when>
+            <otherwise>
+                ORDER BY reviewCount DESC
+            </otherwise>
+        </choose>
+        LIMIT #{startIdx}, #{rowCount}
+    </select>
+
+    <select id="selHotelPkToIndividualDogInfo">
+        SELECT A.hotel_pk
+        FROM t_hotel_room_info A
+        JOIN t_hotel_res_room B
+        ON A.hotel_room_pk = B.hotel_room_pk
+        WHERE A.maximum = 1
+        AND A.size_pk = #{dogSize}
+        AND B.hotel_left_ea <![CDATA[ >= ]]> #{dogCount}
+        AND B.room_date IN
+        <foreach collection="dates" item="date" separator="," open="(" close=")">
+            #{date}
+        </foreach>
+    </select>
+
+    <select id="selHotelPkToGroupDogInfo">
+        SELECT A.hotel_pk
+        FROM t_hotel_room_info A
+        JOIN t_hotel_res_room B
+        ON A.hotel_room_pk = B.hotel_room_pk
+        WHERE A.maximum <![CDATA[ > ]]> 1
+        AND #{allDogCount} <![CDATA[ >= ]]> A.maximum
+        AND A.size_pk <![CDATA[ >= ]]> #{biggestDogSize}
+        AND B.hotel_left_ea <![CDATA[ >= ]]> 1
+        AND B.room_date IN
+        <foreach collection="date" item="item" separator="," open="(" close=")">
+            #{item}
+        </foreach>
+    </select>
+
+    <!--영웅-->
+
+    <select id="getHotelFilterRoomResInfo">
+        SELECT A.hotel_room_nm AS hotelRoomNm
+        ,	B.hotel_left_ea AS roomLeftEa,B.room_date AS roomDate
+        FROM t_hotel_room_info A
+        JOIN t_hotel_res_room B
+        ON A.hotel_room_pk=B.hotel_room_pk
+        WHERE A.hotel_pk=#{hotelPk} AND A.book_able=1
+        AND (DATE(B.room_date) >= DATE(#{startDate}) AND DATE(B.room_date) <![CDATA[<=]]> DATE(#{endDate}))
+        AND (A.size_pk >=#{howMany}) AND (A.maximum >=#{large})
+    </select>
+    <select id="getHotelRoomResInfo">
+        SELECT A.hotel_room_nm AS hotelRoomNm
+        ,	B.hotel_left_ea AS roomLeftEa,B.room_date AS roomDate
+        FROM t_hotel_room_info A
+        LEFT JOIN t_hotel_res_room B
+        ON A.hotel_room_pk=B.hotel_room_pk
+        WHERE A.hotel_pk=#{hotelPk} AND A.book_able=1
+        AND DATE(B.room_date) >= DATE(#{startDate}) AND DATE(B.room_date) <![CDATA[<=]]> DATE(#{endDate})
+    </select>
+    <select id="getHotelReviewThree">
+        SELECT B.hotel_pk AS hotelPk,C.user_pk AS userPk,C.nickname AS nickName
+        , A.comment,A.score,A.created_at AS createdAt,COUNT(D.review_pk) AS reviewFav
+        FROM t_review A
+        JOIN t_reservation B
+        ON A.res_pk=B.res_pk
+        JOIN t_user C
+        ON C.user_pk=B.user_pk
+        RIGHT JOIN t_review_fav D
+        ON A.review_pk=D.review_pk
+        WHERE B.hotel_pk=#{hotelPk}
+        GROUP BY D.review_pk
+        ORDER BY COUNT(D.review_pk) DESC
+        LIMIT 3
+    </select>
+    <select id="getHotelDetail">
+        SELECT A.hotel_nm AS hotelNm, A.hotel_detail_info AS hotelDetailInfo
+        ,	A.business_num AS businessNum, A.hotel_call AS hotelCall
+        ,  C.address_name AS roadAddress,C.detail_address AS addressDetail
+        FROM t_hotel A
+        LEFT JOIN t_hotel_where C
+        ON A.hotel_pk=C.hotel_pk
+        WHERE A.hotel_pk=#{hotelPk}
+    </select>
+    <select id="getHotelPics">
+        SELECT pic AS pics
+        FROM t_hotel_pic
+        WHERE hotel_pk=#{hotelPk}
+    </select>
+    <select id="hotelOptionInfo">
+        SELECT A.option_nm AS optionNm
+        FROM t_option A
+        JOIN t_hotel_option B
+        ON A.option_pk=B.option_pk
+        WHERE hotel_pk=#{hotelPk}
+    </select>
+    <select id="getHotelRoomInfo">
+        SELECT hotel_room_nm AS hotelRoomNm
+        ,hotel_room_ea AS hotelRoomEA
+        ,hotel_room_pk AS hotelRoomPk
+        ,hotel_room_cost AS hotelRoomCost
+        ,maximum ,room_pic AS roomPic
+        FROM t_hotel_room_info
+        WHERE hotel_pk=#{hotelPk}
+    </select>
+    <select id="getMyDogs">
+        SELECT user_dog_pk AS userDogPk
+        , dog_nm AS dogNm, dog_pic AS dogPic, size_pk AS sizePk
+        FROM t_user_dog
+        WHERE user_pk=#{userPk}
+    </select>
+    <select id="isMoreHotelReview">
+        SELECT COUNT(A.review_pk) AS countReview
+        FROM t_review A
+        JOIN t_reservation B
+        ON A.res_pk=B.res_pk
+        WHERE B.hotel_pk=#{hotelPk}
+    </select>
+    <select id="getReviewPics">
+        SELECT A.pics
+        FROM t_review_pic A
+        JOIN t_review B
+        ON A.review_pk=B.review_pk
+        JOIN t_reservation C
+        ON C.res_pk=B.res_pk
+        WHERE C.hotel_pk=#{hotelPk} AND C.user_pk=#{userPk}
+    </select>
+    <!--호텔 찜 삭제-->
+    <delete id="delHotelBookMark">
+        DELETE FROM t_hotel_favorites
+        WHERE user_pk=#{userPk}
+        AND hotel_pk=#{hotelPk}
+    </delete>
+    <!--호텔 찜 등록-->
+    <insert id="insHotelBookMark">
+        INSERT INTO t_hotel_favorites
+        <set>
+            user_pk=#{userPk}
+            ,   hotel_pk=#{hotelPk}
+        </set>
+    </insert>
+    <select id="getHotelBookMark">
+        SELECT B.hotel_pk AS hotelPk, B.hotel_nm AS hotelNm
+        FROM t_hotel_favorites A
+        JOIN t_hotel B
+        ON A.hotel_pk=B.hotel_pk
+        WHERE A.user_pk=#{userPk}
+        LIMIT #{pages} , #{perPage}
+    </select>
+    <select id="getHotelBookMarkPic" parameterType="java.util.List">
+        SELECT hotel_pk AS hotelPk,pic
+        FROM t_hotel_pic
+        WHERE hotel_pk IN (
+        <foreach collection="pkList" item="hotelPk" separator=",">
+            #{hotelPk}
+        </foreach>
+        )
+    </select>
+    <!--승준-->
+
+    <!--====================================================미구현 기능========================================================-->
+
+    <!--호텔더미 등록-->
+    <insert id="insHotel" keyProperty="hotelPk" useGeneratedKeys="true">
+        INSERT INTO t_hotel
+        SET user_pk = #{userPk}
+        ,hotel_nm = #{hotelNm}
+        ,hotel_detail_info = #{hotelDetailInfo}
+        ,business_num = #{businessNum}
+        ,hotel_call = #{hotelCall}
+        ,advertise = 0
+        ,discount_per = 0
+    </insert>
+    <!--호텔 주소등록-->
+    <insert id="insHotelWhere">
+        INSERT INTO t_hotel_where
+        SET hotel_pk = #{hotelPk}
+        ,address_name = #{addressName}
+        ,region_1depth_name = #{region1DepthName}
+        ,region_2depth_name = #{region2DepthName}
+        ,region_3depth_name = #{region3DepthName}
+        ,zone_num = #{zoneNum}
+        ,x_coordinate = #{x}
+        ,y_coordinate = #{y}
+        ,detail_address = #{detailAddress}
+    </insert>
+    <!--호텔 사진 등록-->
+    <insert id="insHotelPics">
+        INSERT INTO t_hotel_pic
+        (hotel_pk , pic)
+        VALUES
+        <foreach collection="pics" item="pic" separator=",">
+            (#{hotelPk} , #{pic})
+        </foreach>
+    </insert>
+    <!--호텔 사진 삭제-->
+    <delete id="delHotelPic">
+        DELETE t_hotel_pic
+        WHERE hotel_pk = #{hotelPk} AND user_pk = #{userPk}
+    </delete>
+    <!--호텔 옵션 등록-->
+    <insert id="insHotelOption">
+        INSERT INTO t_hotel_option
+        (hotel_pk , option_pk)
+        VALUES
+        <foreach collection="hotelOption" item="optionPk" separator=",">
+            (#{hotelPk} , #{optionPk})
+        </foreach>
+    </insert>
+    <!--호텔 방 더미 생성-->
+    <insert id="insHotelRoomInfo" useGeneratedKeys="true" keyProperty="hotelRoomPk">
+        INSERT INTO t_hotel_room_info
+        SET hotel_pk = #{hotelPk}
+        ,size_pk = #{sizePk}
+        ,hotel_room_nm = #{hotelRoomNm}
+        ,hotel_room_ea = #{hotelRoomEa}
+        ,hotel_room_cost = #{hotelRoomCost}
+        ,maximum = #{maximum}
+        ,room_pic = #{roomPic}
+    </insert>
+    <!--호텔 방 사진 수정-->
+    <update id="patchRoomPic">
+        UPDATE t_hotel_room_info
+        SET room_pic = #{roomPic}
+        WHERE hotel_pk = #{hotelPk} AND hotel_room_pk
+    </update>
+    <!--호텔 방 날짜 정보 입력-->
+    <insert id="insHotelRoomInfoDate">
+        INSERT INTO t_hotel_res_room
+        (hotel_room_pk , hotel_left_ea , room_date)
+        VALUES
+        <foreach collection="roomDate" item="date"  separator=",">
+            (#{hotelRoomPk} , #{hotelLeftEa} , #{date})
+        </foreach>
+    </insert>
+</mapper>

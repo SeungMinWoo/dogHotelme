@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.green.hoteldog.mockdata.MockPicMapper">
+    <select id="selReviewPk">
+        SELECT review_pk
+        FROM t_review
+        ORDER BY review_pk
+        LIMIT #{startIdx}, #{rowCount}
+    </select>
+    <select id="selHotelPk">
+        SELECT hotel_pk
+        FROM t_hotel
+        ORDER BY hotel_pk
+        LIMIT #{startIdx}, #{rowCount}
+    </select>
+    <select id="selRoomPk">
+        SELECT hotel_room_pk
+        FROM t_hotel_room_info
+        ORDER BY hotel_room_pk
+        LIMIT #{startIdx}, #{rowCount}
+    </select>
+    <select id="selDogPk">
+        SELECT user_dog_pk
+        FROM t_user_dog
+        ORDER BY user_dog_pk
+        LIMIT #{startIdx}, #{rowCount}
+    </select>
+
+
+
+    <insert id="insMockReviewPic">
+        INSERT INTO t_review_pic
+        (review_pk , pic)
+        VALUES
+        <foreach collection="pics" item="pic" separator=",">
+            (#{pk} , #{pic})
+        </foreach>
+    </insert>
+    <insert id="insMockHotelPic">
+        INSERT INTO t_hotel_pic
+        (hotel_pk , pic)
+        VALUES
+        <foreach collection="pics" item="pic" separator=",">
+            (#{pk} , #{pic})
+        </foreach>
+    </insert>
+    <update id="insMockHotelRoomPic">
+        UPDATE t_hotel_room_info
+        SET room_pic = #{pic}
+        WHERE hotel_room_pk = #{pk}
+    </update>
+    <update id="insMockDogPic">
+        UPDATE t_user_dog
+        SET dog_pic = #{pic}
+        WHERE user_dog_pk = #{pk}
+    </update>
+</mapper>

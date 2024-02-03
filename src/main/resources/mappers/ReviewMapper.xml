@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.green.hoteldog.review.ReviewMapper">
+
+    <!--상세페이지 리뷰 페이지네이션-->
+    <select id="selHotelReview">
+        SELECT D.review_pk AS reviewPk, C.nickname AS nickName, D.comment
+        , D.score, D.updated_at AS updatedAt, COUNT(E.user_pk) AS favCount
+        FROM t_hotel A
+        JOIN t_reservation B
+        ON A.hotel_pk = B.hotel_pk
+        JOIN t_user C
+        ON B.user_pk = C.user_pk
+        JOIN t_review D
+        ON B.res_pk = D.res_pk
+        LEFT JOIN t_review_fav E
+        ON D.review_pk = E.review_pk
+        WHERE A.hotel_pk = #{hotelPk}
+        GROUP BY reviewPk
+        ORDER BY favCount DESC
+        LIMIT #{startIdx}, #{rowCount}
+    </select>
+
+    <!--호텔 pk -> 예약 pk에 관련 된 사진들만 셀렉트-->
+    <select id="selHotelReviewPics">
+        SELECT A.review_pk AS reviewPk, A.pic
+        FROM t_review_pic A
+        JOIN t_review B
+        ON A.review_pk = B.review_pk
+        JOIN t_reservation C
+        ON B.res_pk = C.res_pk
+        WHERE C.hotel_pk = #{hotelPk}
+        AND B.review_pk IN
+        <foreach collection="reviewPk" item="item" separator="," open="(" close=")">
+            #{item}
+        </foreach>
+    </select>
+
+    <insert id="insReview" keyProperty="reviewPk" useGeneratedKeys="true">
+        INSERT INTO t_review
+        SET res_pk = #{resPk}
+        ,comment = #{comment}
+        ,score = #{score}
+    </insert>
+    <insert id="insReviewPics">
+        INSERT INTO t_review_pic
+        (review_pk , pic)
+        VALUES
+        <foreach collection="pics" item="pic" open="(" separator="),(" close=")">
+            #{reviewPk},#{pic}
+        </foreach>
+    </insert>
+    <update id="updReview">
+        UPDATE t_review
+        SET comment = #{comment}
+        ,score = #{score}
+        WHERE review_pk = #{reviewPk}
+    </update>
+    <update id="updReviewComment">
+        UPDATE t_review
+        SET comment = #{comment}
+        WHERE review_pk = #{reviewPk} AND res_pk = #{resPk}
+    </update>
+    <delete id="delReviewPics">
+        DELETE FROM t_review_pic
+        WHERE review_pk = #{reviewPk}
+    </delete>
+    <insert id="insReviewFav">
+        INSERT INTO t_review_fav
+        SET review_pk = #{reviewPk}
+        ,user_pk = #{userPk}
+    </insert>
+    <delete id="delReviewFav">
+        DELETE FROM t_review_fav
+        WHERE user_pk = #{userPk} AND review_pk = #{reviewPk}
+    </delete>
+    <select id="checkResStatus">
+        SELECT res_status
+        FROM t_reservation
+        WHERE user_pk = #{userPK} AND res_pk = #{resPk}
+    </select>
+    <delete id="delReview">
+        DELETE FROM t_review
+        WHERE review_pk = #{reviewPk} AND res_pk = #{resPk}
+    </delete>
+    <select id="checkResUser">
+        SELECT user_pk
+        FROM t_reservation
+        WHERE user_pk = #{userPk} AND res_pk = #{resPk}
+    </select>
+    <delete id="delReviewPicsAll">
+        DELETE FROM t_review_pic
+        WHERE review_pk = #{reviewPk}
+    </delete>
+    <delete id="delReviewFavAll">
+        DELETE FROM t_review_fav
+        WHERE review_pk = #{reviewPk}
+    </delete>
+
+    <!--재웅-->
+
+
+</mapper>

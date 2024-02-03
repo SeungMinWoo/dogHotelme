@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.green.hoteldog.dog.DogMapper">
+    <insert id="insUserDog" keyProperty="userDogPk" useGeneratedKeys="true">
+        INSERT INTO t_user_dog
+        SET user_pk = #{userPk}
+        ,size_pk = #{sizePk}
+        ,dog_nm = #{dogNm}
+        ,dog_age = #{dogAge}
+        ,dog_etc = #{dogEtc}
+    </insert>
+    <update id="updUserDog">
+        UPDATE t_user_dog
+        SET size_pk = #{sizePk}
+        ,dog_nm = #{dogNm}
+        ,dog_age = #{dogAge}
+        ,dog_etc = #{dogEtc}
+        WHERE user_pk = #{userPk} AND user_dog_pk = #{userDogPk}
+    </update>
+    <delete id="delUserDog">
+        DELETE FROM t_user_dog
+        WHERE user_pk = #{userPk} AND user_dog_pk = #{userDogPk}
+    </delete>
+    <select id="selUserDog">
+        SELECT user_dog_pk AS userDogPk
+        ,size_pk AS sizePk
+        ,dog_nm AS dogNm
+        ,dog_age AS dogAge
+        ,dog_pic AS dogPic
+        ,dog_etc AS dogEtc
+        ,created_at AS createdAt
+        FROM t_user_dog
+        ORDER BY user_dog_pk DESC
+        WHERE user_pk = #{userPk}
+        <!--LIMIT #{startIdx},#{rowCount}-->
+    </select>
+    <insert id="insResDog">
+        INSERT INTO t_res_dog_info
+        SET size_pk = #{sizePk}
+        ,age = #{age}
+        ,information = #{information}
+        ,dog_nm = #{dogNm}
+    </insert>
+    <update id="setUserDogPic">
+        UPDATE t_user_dog
+        SET dog_pic = #{pic}
+        WHERE user_dog_pk = #{userDogPk} AND user_pk = #{userPk}
+    </update>
+</mapper>

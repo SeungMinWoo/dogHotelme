@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.green.hoteldog.reservation.ReservationMapper">
+
+    <!--호텔 예약-->
+    <insert id="insHotelReservation" useGeneratedKeys="true" keyProperty="resPk">
+        INSERT INTO t_reservation
+        (user_pk, hotel_pk, from_date, to_date, res_status)
+        VALUES (
+        #{userPk}
+        , #{hotelPk}
+        , #{fromDate}
+        , #{toDate}
+        , 1
+        )
+        <!--0. 잔행 중, 1. 승인, 2. 퇴실-->
+    </insert>
+
+    <insert id="insHotelReservationDogInfo" useGeneratedKeys="true" keyProperty="resDogPk">
+        INSERT INTO t_res_dog_info
+        SET size_pk = #{sizePk}
+        , dog_nm = #{dogNm}
+        , age = #{dogAge}
+        , information = #{information}
+    </insert>
+
+    <insert id="insHotelReservationInfo">
+        INSERT INTO t_res_comprehensive_info
+        (res_pk, hotel_room_pk, res_dog_pk)
+        VALUES
+        <foreach collection="dogInfo" item="item" separator=",">
+            (#{resPk}, #{item.hotelRoomPk}, #{item.resDogPk})
+        </foreach>
+    </insert>
+
+    <update id="updRemainedHotelRoom">
+        <foreach collection="list" item="item">
+            UPDATE t_hotel_res_room
+            SET hotel_left_ea = hotel_left_ea - 1
+            WHERE
+            <foreach collection="item.date" item="subItem" open="(" close=")" separator="OR">
+                (room_date = #{subItem} AND hotel_room_pk = #{item.hotelRoomPk})
+            </foreach>;
+        </foreach>
+    </update>
+    <!---->
+
+
+    <!--예약 취소-->
+    <select id="selHotelReservation">
+        SELECT A.res_pk AS resPk
+        , A.from_date AS fromDate, A.to_date AS toDate
+        , roomCount, res_dog_pk AS resDogPk
+        FROM t_reservation A
+        JOIN t_res_comprehensive_info B
+        ON A.res_pk = B.res_pk
+        JOIN(
+        SELECT A.res_pk, count(DISTINCT B.hotel_room_pk) AS roomCount
+        FROM t_reservation A
+        JOIN t_res_comprehensive_info B
+        ON A.res_pk = B.res_pk
+        WHERE A.user_pk = #{userPk}
+        AND A.res_pk = #{resPk}
+        AND A.res_status IN (0,1)
+        )C
+        ON  A.res_pk = C.res_pk
+        WHERE A.user_pk = #{userPk}
+        AND A.res_pk = #{resPk}
+        AND A.res_status IN (0,1)
+    </select>
+    <!--0. 잔행 중, 1. 승인, 2. 퇴실-->
+
+    <select id="selHotelRoomPk">
+        SELECT DISTINCT B.hotel_room_pk AS hotelRoomPk
+        FROM t_reservation A
+        JOIN t_res_comprehensive_info B
+        ON A.res_pk = B.res_pk
+        WHERE A.user_pk = #{userPk}
+        AND A.res_pk = #{resPk}
+        AND A.res_status IN (0,1)
+    </select>
+
+    <delete id="delHotelReservationInfo">
+        DELETE FROM t_res_comprehensive_info
+        WHERE res_pk = #{resPk}
+    </delete>
+
+    <delete id="delHotelReservationDogInfo">
+        DELETE FROM t_res_dog_info
+        WHERE res_dog_pk in
+        <foreach collection="resDogPkList" item="item" separator="," open="(" close=")">
+            #{item}
+        </foreach>
+    </delete>
+
+    <delete id="delHotelReservation">
+        DELETE FROM t_reservation
+        WHERE user_pk = #{userPk}
+        AND res_pk = #{resPk}
+    </delete>
+
+    <update id="updRemainedHotelRoom2">
+        <foreach collection="hotelRoomPk" item="item">
+            UPDATE t_hotel_res_room
+            SET hotel_left_ea = hotel_left_ea + 1
+            WHERE
+            <foreach collection="date" item="item2" open="(" close=")" separator="OR">
+                (room_date = #{item2} AND hotel_room_pk = #{item})
+            </foreach>;
+        </foreach>
+    </update>
+    <!--예약강아지 리스트-->
+    <select id="getDogInfoReservation">
+        SELECT A.res_pk AS resPk, B.dog_nm AS dogNm
+        FROM t_res_comprehensive_info A
+        JOIN t_res_dog_info B
+        ON A.res_dog_pk=B.res_dog_pk
+        WHERE A.res_pk IN
+        <foreach collection="list" item="resPk" open="(" close=")" separator=",">
+            #{resPk}
+        </foreach>
+    </select>
+    <!--예약 리스트-->
+    <select id="getUserReservation">
+        SELECT D.hotel_nm AS hotelNm,D.hotel_call AS hotelCall
+        ,   C.hotel_room_nm AS hotelRoomNm ,A.from_date AS fromDate
+        ,   A.to_date AS toDate,C.room_pic AS roomPic ,A.res_pk AS resPk
+        ,	A.res_status AS resStatus
+        FROM t_reservation A
+        JOIN t_res_comprehensive_info B
+        ON A.res_pk=B.res_pk
+        JOIN t_hotel_room_info C
+        ON B.hotel_room_pk=C.hotel_room_pk
+        JOIN t_hotel D
+        ON A.hotel_pk=D.hotel_pk
+        WHERE A.user_pk=#{userPk}
+        LIMIT #{pages} , #{perPage}
+    </select>
+</mapper>

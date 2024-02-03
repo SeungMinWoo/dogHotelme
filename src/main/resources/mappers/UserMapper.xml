@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.green.hoteldog.user.UserMapper">
+    <insert id="userSignup" useGeneratedKeys="true" keyProperty="userPk">
+        INSERT INTO t_user
+        SET user_type_pk = #{userTypePk}
+        , user_email = #{userEmail}
+        , upw = #{upw}
+        , nickname = #{nickname}
+        , phone_num = #{phoneNum}
+        , user_address = #{userAddress}
+    </insert>
+    <insert id="insUserAddress">
+        INSERT INTO t_user_where
+        SET user_pk = #{userPk}
+            ,address_name = #{addressName}
+            ,region_1depth_name = #{region1DepthName}
+            ,region_2depth_name = #{region2DepthName}
+            ,region_3depth_name = #{region3DepthName}
+            ,zone_num = #{zoneNum}
+            ,x_coordinate = #{x}
+            ,y_coordinate = #{y}
+            ,detail_address = #{detailAddress}
+    </insert>
+    <select id="userPw">
+        SELECT upw
+        FROM t_user
+        WHERE user_email = #{userEmail}
+    </select>
+    <select id="userEntityByUserEmail">
+        SELECT user_pk AS userPk
+        , user_type_pk AS userTypePk
+        , user_email AS userEmail
+        , upw
+        , nickname
+        , phone_num AS phoneNum
+        , user_address AS userAddress
+        FROM t_user
+        WHERE user_email = #{userEmail}
+    </select>
+    <select id="userEntityByUserPk">
+        SELECT user_pk AS userPk
+        , user_type_pk AS userTypePk
+        , user_email AS userEmail
+        , upw
+        , nickname
+        , phone_num AS phoneNum
+        , user_address AS userAddress
+        FROM t_user
+        WHERE user_pk = #{userPk}
+    </select>
+    <select id="selUserEntity">
+        SELECT user_pk AS userPk
+        ,user_type_pk AS userTypePk
+        ,user_email AS userEmail
+        ,upw ,nickname
+        ,phone_num AS phoneNum
+        ,user_address AS userAddress
+        FROM t_user
+    </select>
+    <select id="selUserDogSize">
+        SELECT DISTINCT size_pk
+        FROM t_user_dog
+        WHERE user_pk = #{userPK}
+    </select>
+    <select id="selUserDepthName">
+        SELECT region_1depth_name
+        FROM t_user_address
+        WHERE user_pk = #{userPk}
+    </select>
+    <update id="updateUserInfo">
+        UPDATE t_user A
+        JOIN t_user_where B
+        ON A.user_pk = B.user_pk
+        SET A.nickname = #{nickname}
+        ,A.phone_num = #{phoneNum}
+        ,A.user_address = #{userAddress}
+        ,B.address_name = #{addressName}
+        ,B.region_1depth_name = #{region1DepthName}
+        ,B.region_2depth_name = #{region2DepthName}
+        ,B.region_3depth_name = #{region3DepthName}
+        ,B.zone_num = #{zoneNum}
+        ,B.x_coordinate = #{x}
+        ,B.y_coordinate = #{y}
+        ,B.detail_address = #{detailAddress}
+        WHERE A.user_pk = #{userPk}
+    </update>
+
+
+    <select id="selMyReview">
+        SELECT
+        d.review_pk AS reviewPk,
+        a.hotel_nm AS hotelNm,
+        GROUP_CONCAT(DISTINCT b.hotel_room_nm ORDER BY b.hotel_room_pk) AS hotelRoomNm,
+        d.score, d.comment, d.updated_at AS updatedAt
+        FROM
+        t_hotel a
+        JOIN t_hotel_room_info b
+        ON a.hotel_pk = b.hotel_pk
+        LEFT JOIN t_reservation c
+        ON a.hotel_pk = c.hotel_pk
+        JOIN t_res_comprehensive_info e
+        ON c.res_pk = e.res_pk
+        LEFT JOIN
+        t_review d ON c.res_pk = d.res_pk
+        WHERE
+        c.user_pk = #{userPk}
+        AND d.review_pk IS NOT NULL
+        GROUP BY
+        d.review_pk, a.hotel_pk
+    </select>
+
+
+
+<!--    <select id="selMyReview">-->
+<!--        SELECT d.review_pk AS reviewPk-->
+<!--        ,a.hotel_nm AS hotelNm-->
+<!--        ,b.hotel_room_nm AS hotelRoomNm-->
+<!--        ,d.score ,d.comment-->
+<!--        ,d.updated_at AS updatedAt-->
+<!--        FROM t_hotel a-->
+<!--        JOIN t_hotel_room_info b-->
+<!--        ON a.hotel_pk=b.hotel_room_pk-->
+<!--        left JOIN t_reservation c-->
+<!--        ON a.hotel_pk = c.hotel_pk-->
+<!--        left JOIN t_review d-->
+<!--        ON c.res_pk = d.res_pk-->
+<!--        WHERE c.user_pk=#{userPk}-->
+<!--        AND d.review_pk IS NOT NULL-->
+<!--    </select>-->
+
+
+
+    <select id="selMyReviewHotelRoonNm">
+        SELECT a.res_pk as resPk , a.user_pk as userPk
+        , GROUP_CONCAT(DISTINCT c.hotel_room_nm) AS hotel_rooms
+        FROM t_reservation a
+        JOIN t_res_comprehensive_info b ON a.res_pk = b.res_pk
+        LEFT JOIN t_hotel_room_info c ON b.hotel_room_pk = c.hotelRoomNm
+        WHERE a.user_pk =# {userPk}
+        GROUP BY a.res_pk, a.user_pk
+        <foreach collection="resPK" item="item" separator="," open="(" close=")">
+            #{item}
+        </foreach>
+    </select>
+
+
+
+    <select id="selMyReviewPic">
+        SELECT d.review_pk AS reviewPk
+        , e.pic
+        FROM t_hotel a
+        JOIN t_hotel_room_info b ON a.hotel_pk=b.hotel_room_pk
+        LEFT JOIN t_reservation c ON a.hotel_pk = c.hotel_pk
+        LEFT JOIN t_review d ON c.res_pk = d.res_pk
+        LEFT JOIN t_review_pic e ON d.review_pk = e.review_pk
+        WHERE c.user_pk=#{userPk}
+        AND d.review_pk IN
+        <foreach collection="reviewPk" item="item" separator="," open="(" close=")">
+            #{item}
+        </foreach>
+    </select>
+
+</mapper>

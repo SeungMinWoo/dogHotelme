@@ -1,0 +1,69 @@
+app:
+  jwt:
+    secret: DaeguGreenArtAcademyClass502RoomForJavaSpringBootFasdasdasdighting
+    header-scheme-name: authorization
+    token-type: Bearer
+    access-token-expiry: 7200000
+    refresh-token-expiry: 1296000000
+file:
+  dir: D:/home/download/greengram4/
+
+spring:
+  data:
+    redis:
+      host: localhost # 임시 방편으로 로컬에서 테스트를 위해 설정
+      port: 6379
+  datasource:
+    driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+    url: jdbc:log4jdbc:mariadb://localhost:3306/doghotel?allowMultiQueries=true
+    username: root
+    password: green502
+
+    # 도커 계정
+    #url: jdbc:mariadb://192.168.0.144:3306/db_even_last_2
+    #username: even_last_2
+    #password: cache
+
+mybatis:
+  mapper-locations: mappers/**/*.xml
+
+springdoc:
+  swagger-ui:
+    path: /swagger.html
+server:
+  port: 8080
+
+logging:
+  level:
+    jdbc:
+      sqlonly: off
+      sqltiming: info
+      resultsettable: info
+      audit: off
+      resultset: off
+      connection: off
+
+---
+
+spring:
+  datasource:
+    driver-class-name: org.mariadb.jdbc.Driver
+    url: jdbc:mariadb://192.168.0.144:3306/db_even_last_2?allowMultiQueries=true
+    username: even_last_2
+    password: cache
+  data:
+    redis:
+      host: 192.168.0.144
+      port: 6379
+  config:
+    activate:
+      on-profile: prod
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 15MB
+
+file:
+  dir: /home/download/
+server:
+  port: 8080
