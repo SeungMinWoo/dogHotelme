@@ -17,7 +17,7 @@ spring:
     driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
     url: jdbc:log4jdbc:mariadb://localhost:3306/doghotel?allowMultiQueries=true
     username: root
-    password: green502
+    password: rkfrkfdl1!
 
     # 도커 계정
     #url: jdbc:mariadb://192.168.0.144:3306/db_even_last_2
@@ -31,7 +31,7 @@ springdoc:
   swagger-ui:
     path: /swagger.html
 server:
-  port: 8080
+  port: 9090
 
 logging:
   level:

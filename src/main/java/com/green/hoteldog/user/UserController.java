@@ -4,6 +4,7 @@ import com.green.hoteldog.common.RedisUtil;
 import com.green.hoteldog.common.ResVo;
 import com.green.hoteldog.exceptions.CustomException;
 import com.green.hoteldog.exceptions.UserErrorCode;
+import com.green.hoteldog.security.AuthenticationFacade;
 import com.green.hoteldog.user.models.MyReviewSelDto;
 import com.green.hoteldog.user.models.MyReviewSelVo;
 import com.green.hoteldog.user.models.*;
@@ -26,6 +27,7 @@ import java.util.List;
 public class UserController {
     private final UserService service;
     private final RedisUtil redisUtil;
+    private final AuthenticationFacade authenticationFacade;
 
     @PostMapping("/signout")
     @Operation(summary = "유저 로그아웃",description = "로그아웃 처리 및 쿠키삭제")
@@ -86,6 +88,8 @@ public class UserController {
     @GetMapping("/info")
     @Operation(summary = "이용 후기")
     public List<MyReviewSelVo> selMyReview(MyReviewSelDto dto){
+        int userPk = authenticationFacade.getLoginUserPk();
+        dto.setUserPk(userPk);
         return service.selMyReview(dto);
     }
 }

@@ -9,9 +9,12 @@ import java.util.List;
 
 @Data
 public class MyReviewHotelRoonNmVo {
-    @JsonProperty(value = "resPk")
-    private int resPk;
+//    @JsonProperty(value = "resPk")
+//    private int resPk;
+//    private String hotelRoomNm;
+
+    @JsonProperty(value = "review_pk")
+    private int reviewPk;
     private String hotelRoomNm;
-    ;
 
 }

@@ -152,26 +152,29 @@ public class UserService {
         return vo;
     }
 
-    public  List<MyReviewSelVo> selMyReview(MyReviewSelDto dto){
-//        return mapper.selMyReview(dto);
-
-
+    public List<MyReviewSelVo> selMyReview(MyReviewSelDto dto) {
 
         List<MyReviewSelVo> list = mapper.selMyReview(dto);
-        for (MyReviewSelVo vo : list){
+        for (MyReviewSelVo vo : list) {
             dto.getReviewPk().add(vo.getReviewPk());
         }
-        List<MyReviewPicsSelVo> pics =mapper.selMyReviewPic(dto);
+        List<MyReviewPicsSelVo> pics = mapper.selMyReviewPic(dto);
+        List<MyReviewHotelRoonNmVo> rooms = mapper.selMyReviewHotelRoonNm(dto);
 
         List<Integer> revPk = new ArrayList<>();
-        Map<Integer,MyReviewSelVo> hasgMap = new HashMap<>();
+
+        Map<Integer, MyReviewSelVo> hasgMap = new HashMap<>();
         for (MyReviewSelVo vo : list) {
             revPk.add(vo.getReviewPk());
-            hasgMap.put(vo.getReviewPk(),vo);
+            hasgMap.put(vo.getReviewPk(), vo);
         }
-        for (MyReviewPicsSelVo vo : pics){
+        for (MyReviewPicsSelVo vo : pics) {
             hasgMap.get(vo.getReviewPk()).getPics().add(vo.getPic());
         }
+        for (MyReviewHotelRoonNmVo vo : rooms) {
+            hasgMap.get(vo.getReviewPk()).getHotelRoomNm().add(vo.getHotelRoomNm());
+        }
+
         for (MyReviewSelVo vo : list) {
             while (vo.getPics().size() > 3) {
                 vo.getPics().remove(vo.getPics().size() - 1);
@@ -179,4 +182,6 @@ public class UserService {
         }
         return list;
     }
+
+
 }
